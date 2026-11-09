@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Chỉnh Sửa Bản Nháp {{ req.req_code }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb-nav">
+    <a href="{{ url_for('dashboard.index') }}"><i class="fa-solid fa-house me-1"></i>Bảng Điều Khiển</a>
+    <span>/</span>
+    <a href="{{ url_for('employee.requests_list') }}">Yêu Cầu Vật Tư</a>
+    <span>/</span>
+    <span class="text-dark">Sửa Bản Nháp {{ req.req_code }}</span>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card border-0 shadow-sm bg-white p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+                <div>
+                    <h4 class="fw-bold text-primary mb-1">Chỉnh Sửa Bản Nháp: {{ req.req_code }}</h4>
+                    <p class="text-muted small mb-0">Cập nhật nội dung yêu cầu hoặc chính thức gửi lên Phòng Cung ứng</p>
+                </div>
+                <a href="{{ url_for('employee.requests_list') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fa-solid fa-arrow-left me-1"></i> Quay lại
+                </a>
+            </div>
+
+            <form action="{{ url_for('employee.edit_draft', req_id=req.id) }}" method="POST">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-8">
+                        <label class="form-label fw-bold small">Tiêu đề yêu cầu vật tư *</label>
+                        <input type="text" name="title" class="form-control" value="{{ req.title }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small">Mức độ ưu tiên *</label>
+                        <select name="priority" class="form-select">
+                            <option value="normal" {% if req.priority == 'normal' %}selected{% endif %}>Bình thường</option>
+                            <option value="high" {% if req.priority == 'high' %}selected{% endif %}>Ưu tiên cao</option>
+                            <option value="urgent" {% if req.priority == 'urgent' %}selected{% endif %}>Khẩn cấp</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-8">
+                        <label class="form-label fw-bold small">Mục đích sử dụng / Lý do *</label>
+                        <textarea name="reason" class="form-control" rows="2" required>{{ req.reason }}</textarea>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small">Hạn cần hàng *</label>
+                        <input type="date" name="required_date" class="form-control" value="{{ req.required_date or '' }}" required>
+                    </div>
+                </div>
+
+                <!-- Material Items List -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label fw-bold small mb-0 text-dark">Danh sách vật tư đề xuất cấp:</label>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addRow()">
+                            <i class="fa-solid fa-plus me-1"></i> Thêm mặt hàng
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle" id="itemsTable">
+                            <thead class="table-light small">
+                                <tr>
+                                    <th style="width: 60%;">Tên Vật Tư / Thiết Bị</th>
+                                    <th style="width: 25%;">Số Lượng Cần Cấp</th>
+                                    <th style="width: 15%; text-align: center;">Xóa</th>
+                                </tr>
+                            </thead>
+                            <tbody id="itemsBody">
+                                {% for it in items %}
+                                <tr>
+                                    <td>
+                                        <select name="material_id[]" class="form-select select-material" required>
+                                            {% for m in materials %}
+                                            <option value="{{ m.id }}" {% if m.id == it.material_id %}selected{% endif %}>
+                                                [{{ m.code }}] {{ m.name }} (Khả dụng: {{ m.available_qty }} {{ m.unit }})
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="number" name="quantity[]" class="form-control" min="1" value="{{ it.requested_qty }}" required>
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRow(this)">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center border-top pt-3">
+                    <a href="{{ url_for('employee.request_detail', req_id=req.id) }}" class="btn btn-outline-secondary">Hủy bỏ</a>
+                    <div class="d-flex gap-2">
+                        <button type="submit" name="action_type" value="draft" class="btn btn-outline-secondary fw-bold">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Cập Nhật Bản Nháp
+                        </button>
+                        <button type="submit" name="action_type" value="submit" class="btn btn-primary px-4 fw-bold shadow-sm">
+                            <i class="fa-solid fa-paper-plane me-1"></i> Gửi Yêu Cầu Cấp Phát
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function addRow() {
+        const body = document.getElementById('itemsBody');
+        const firstRow = body.children[0];
+        const newRow = firstRow.cloneNode(true);
+        newRow.querySelector('input[type="number"]').value = 1;
+        body.appendChild(newRow);
+    }
+
+    function removeRow(btn) {
+        const body = document.getElementById('itemsBody');
+        if (body.children.length > 1) {
+            btn.closest('tr').remove();
+        } else {
+            alert("Cần có ít nhất một mặt hàng trong phiếu yêu cầu vật tư!");
+        }
+    }
+</script>
+{% endblock %}

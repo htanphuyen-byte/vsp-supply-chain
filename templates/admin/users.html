@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}Quản Trị Người Dùng & Phân Quyền (Admin Only){% endblock %}
+
+{% block content %}
+<div class="breadcrumb-nav">
+    <a href="{{ url_for('dashboard.index') }}"><i class="fa-solid fa-house me-1"></i>Bảng Điều Khiển</a>
+    <span>/</span>
+    <span class="text-dark">Quản Trị Tài Khoản & Phân Quyền</span>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-dark mb-0">Quản Trị Tài Khoản & Phân Quyền Người Dùng (Admin)</h3>
+        <p class="text-muted small mb-0">Phân quyền chặt chẽ cho 5 nhóm vai trò: Nhân viên, Cung ứng, Kho, Lãnh đạo, Admin</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-house me-1"></i> Về Dashboard
+        </a>
+        <button type="button" class="btn btn-primary btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#createUserModal">
+            <i class="fa-solid fa-user-plus me-1"></i> Thêm Tài Khoản Mới
+        </button>
+    </div>
+</div>
+
+<!-- Search Bar (Section 11) -->
+<div class="card border-0 shadow-sm p-3 mb-4 bg-white">
+    <form method="GET" action="{{ url_for('admin.user_list') }}" class="row g-2 align-items-center">
+        <div class="col-md-9">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
+                <input type="text" name="search" class="form-control" placeholder="Tìm theo tên đăng nhập, họ tên, mã nhân viên, email, phòng ban..." value="{{ search or '' }}">
+            </div>
+        </div>
+        <div class="col-md-3 d-flex gap-1">
+            <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Tìm Kiếm</button>
+            <a href="{{ url_for('admin.user_list') }}" class="btn btn-outline-secondary btn-sm">Xóa Lọc</a>
+        </div>
+    </form>
+</div>
+
+<!-- Users Table (Section 11) -->
+<div class="card border-0 shadow-sm bg-white overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small">
+                <tr>
+                    <th>Mã NV & Username</th>
+                    <th>Họ Và Tên</th>
+                    <th>Phòng Ban / Vị Trí</th>
+                    <th>Email Công Ty / SĐT</th>
+                    <th>Vai Trò (Role Phân Quyền)</th>
+                    <th>Trạng Thái</th>
+                    <th>Ngày Đăng Ký</th>
+                    <th class="text-end">Khóa / Mở & Reset</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>
+                        <div class="fw-bold text-primary">{{ u.username }}</div>
+                        <span class="badge bg-light text-dark border small" style="font-size: 0.72rem;">{{ u.employee_id }}</span>
+                    </td>
+                    <td class="fw-bold text-dark">{{ u.full_name }}</td>
+                    <td>
+                        <div class="small fw-bold">{{ u.department }}</div>
+                        <div class="text-muted" style="font-size: 0.72rem;">{{ u.position }}</div>
+                    </td>
+                    <td class="small">
+                        <div class="text-primary">{{ u.email }}</div>
+                        <div class="text-muted">{{ u.phone or '' }}</div>
+                    </td>
+                    <td>
+                        <!-- Form update role (Only Admin can change roles - Section 11) -->
+                        <form action="{{ url_for('admin.update_user', target_id=u.id) }}" method="POST" class="d-flex align-items-center gap-1">
+                            <select name="role" class="form-select form-select-sm" style="width: 145px; font-size: 0.8rem;">
+                                <option value="employee" {% if u.role == 'employee' %}selected{% endif %}>1. Nhân viên</option>
+                                <option value="procurement" {% if u.role == 'procurement' %}selected{% endif %}>2. Cung ứng</option>
+                                <option value="warehouse" {% if u.role == 'warehouse' %}selected{% endif %}>3. Thủ kho</option>
+                                <option value="manager" {% if u.role == 'manager' %}selected{% endif %}>4. Lãnh đạo</option>
+                                <option value="admin" {% if u.role == 'admin' %}selected{% endif %}>5. Admin</option>
+                            </select>
+                            <input type="hidden" name="is_active" value="{{ u.is_active }}">
+                            <button type="submit" class="btn btn-sm btn-outline-primary py-0 px-2" title="Lưu phân quyền mới">
+                                <i class="fa-solid fa-check"></i>
+                            </button>
+                        </form>
+                    </td>
+                    <td>
+                        {% if u.is_active %}
+                            <span class="badge bg-success">Hoạt động (Active)</span>
+                        {% else %}
+                            <span class="badge bg-danger">Bị khóa (Locked)</span>
+                        {% endif %}
+                    </td>
+                    <td class="small text-muted">{{ u.created_at[:10] }}</td>
+                    <td class="text-end">
+                        <div class="d-flex gap-1 justify-content-end">
+                            <!-- Lock / Unlock button -->
+                            <form action="{{ url_for('admin.update_user', target_id=u.id) }}" method="POST" class="d-inline">
+                                <input type="hidden" name="role" value="{{ u.role }}">
+                                <input type="hidden" name="is_active" value="{% if u.is_active %}0{% else %}1{% endif %}">
+                                <button type="submit" class="btn btn-sm {% if u.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %} py-0 px-2" title="{% if u.is_active %}Khóa tài khoản{% else %}Mở khóa{% endif %}">
+                                    {% if u.is_active %}<i class="fa-solid fa-lock"></i>{% else %}<i class="fa-solid fa-lock-open"></i>{% endif %}
+                                </button>
+                            </form>
+                            <!-- Reset password button -->
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" data-bs-toggle="modal" data-bs-target="#resetModal{{ u.id }}" title="Đặt lại mật khẩu">
+                                <i class="fa-solid fa-key"></i>
+                            </button>
+                        </div>
+
+                        <!-- Reset Password Modal -->
+                        <div class="modal fade text-start" id="resetModal{{ u.id }}" tabindex="-1">
+                            <div class="modal-dialog modal-sm">
+                                <div class="modal-content">
+                                    <form action="{{ url_for('admin.reset_user_password', target_id=u.id) }}" method="POST">
+                                        <div class="modal-header">
+                                            <h6 class="modal-title fw-bold">Đặt lại mật khẩu: {{ u.username }}</h6>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <label class="form-label small fw-bold">Mật khẩu mới</label>
+                                            <input type="text" name="new_password" class="form-control form-control-sm" value="123456" required>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
+                                            <button type="submit" class="btn btn-primary btn-sm">Lưu</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="text-center py-5 text-muted">
+                        <i class="fa-solid fa-users fs-2 mb-2 d-block text-secondary"></i>
+                        Không tìm thấy tài khoản người dùng nào.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal: Tạo tài khoản mới bởi Admin -->
+<div class="modal fade" id="createUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('admin.create_user') }}" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold text-primary"><i class="fa-solid fa-user-plus me-2"></i>Thêm Cán Bộ / Người Dùng Mới</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-7">
+                            <label class="form-label small fw-bold">Họ và tên *</label>
+                            <input type="text" name="full_name" class="form-control" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label small fw-bold">Mã nhân viên (Employee ID) *</label>
+                            <input type="text" name="employee_id" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Phòng ban / Đội công tác *</label>
+                            <input type="text" name="department" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Chức danh / Vị trí *</label>
+                            <input type="text" name="position" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Email công ty *</label>
+                            <input type="email" name="email" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Số điện thoại</label>
+                            <input type="text" name="phone" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Tên đăng nhập *</label>
+                            <input type="text" name="username" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Mật khẩu *</label>
+                            <input type="password" name="password" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">Phân quyền vai trò (Role) *</label>
+                        <select name="role" class="form-select">
+                            <option value="employee">1. Nhân viên đề xuất (EMPLOYEE)</option>
+                            <option value="procurement">2. Phòng Cung ứng (PROCUREMENT)</option>
+                            <option value="warehouse">3. Nhân viên Kho (WAREHOUSE)</option>
+                            <option value="manager">4. Ban Lãnh đạo (MANAGEMENT)</option>
+                            <option value="admin">5. Quản trị viên (ADMIN)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary btn-sm fw-bold">Tạo Tài Khoản</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

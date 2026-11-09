@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Chi Tiết Đơn Đặt Hàng {{ po.po_code }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb-nav">
+    <a href="{{ url_for('dashboard.index') }}"><i class="fa-solid fa-house me-1"></i>Bảng Điều Khiển</a>
+    <span>/</span>
+    <a href="{{ url_for('procurement.orders_list') }}">Đơn Mua Hàng (PO)</a>
+    <span>/</span>
+    <span class="text-dark">{{ po.po_code }}</span>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2">
+            <h3 class="fw-bold text-dark mb-0">{{ po.po_code }}</h3>
+            {% if po.status == 'waiting_purchase' %}<span class="badge bg-secondary">Chờ mua sắm</span>
+            {% elif po.status == 'po_created' %}<span class="badge bg-primary">Đã phát hành đơn PO</span>
+            {% elif po.status == 'sent_supplier' %}<span class="badge bg-info text-dark">Đã gửi đơn vị cung ứng</span>
+            {% elif po.status == 'in_transit' %}<span class="badge bg-warning text-dark">Bước 7: NCC Đang vận chuyển</span>
+            {% elif po.status == 'fully_received' %}<span class="badge bg-success">Bước 8: Đã nhận đủ & Nhập kho</span>
+            {% elif po.status == 'completed' %}<span class="badge bg-success">Hoàn thành hợp đồng</span>
+            {% elif po.status == 'cancelled' %}<span class="badge bg-danger">Đã hủy</span>{% endif %}
+        </div>
+        <div class="text-muted small mt-1">Đơn đặt hàng cung ứng vật tư & phụ tùng thiết bị hàng hải - lặn biển</div>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-house me-1"></i> Về Dashboard
+        </a>
+        <a href="{{ url_for('procurement.orders_list') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-arrow-left me-1"></i> Danh Sách PO
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <!-- PO Items Table -->
+        <div class="card border-0 shadow-sm p-3 bg-white mb-4">
+            <div class="fw-bold text-dark mb-3 small text-uppercase">
+                <i class="fa-solid fa-receipt me-2 text-primary"></i>Danh Mục Hàng Hóa Đặt Mua
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle mb-0 small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mã VT</th>
+                            <th>Tên Mặt Hàng</th>
+                            <th>ĐVT</th>
+                            <th class="text-center">Số Lượng Đặt</th>
+                            <th class="text-center">Đã Nhập Kho</th>
+                            <th class="text-end">Đơn Giá (VNĐ)</th>
+                            <th class="text-end">Thành Tiền (VNĐ)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for it in items %}
+                        <tr>
+                            <td class="fw-bold text-primary">{{ it.mat_code }}</td>
+                            <td>{{ it.mat_name }}</td>
+                            <td>{{ it.mat_unit }}</td>
+                            <td class="text-center fw-bold">{{ it.order_qty }}</td>
+                            <td class="text-center text-success fw-bold">{{ it.received_qty }}</td>
+                            <td class="text-end">{{ "{:,.0f}".format(it.unit_price) }} đ</td>
+                            <td class="text-end fw-bold">{{ "{:,.0f}".format(it.order_qty * it.unit_price) }} đ</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <td colspan="6" class="text-end fw-bold">Tổng Giá Trị Đơn Hàng:</td>
+                            <td class="text-end fw-bold text-danger fs-6">{{ "{:,.0f}".format(po.total_amount) }} đ</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        {% if po.notes %}
+        <div class="card border-0 shadow-sm p-3 bg-white">
+            <div class="small fw-bold text-muted mb-1">Điều khoản & ghi chú giao nhận:</div>
+            <div class="small text-dark">{{ po.notes }}</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Supplier Details Card (Section 9 & 10) -->
+        <div class="card border-0 shadow-sm p-3 bg-white mb-4">
+            <div class="fw-bold text-dark mb-3 small text-uppercase">
+                <i class="fa-solid fa-building me-2 text-primary"></i>Thông Tin Nhà Cung Cấp
+            </div>
+            <div class="fw-bold text-primary mb-1">{{ po.supplier_name }}</div>
+            <ul class="list-group list-group-flush small">
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-muted">Mã NCC:</span>
+                    <span>{{ po.supplier_code }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-muted">Điện thoại liên hệ:</span>
+                    <span class="fw-bold">{{ po.supplier_phone }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-muted">Mã số thuế:</span>
+                    <span>{{ po.supplier_tax_id or 'Chưa cập nhật' }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-muted">Địa chỉ:</span>
+                    <span class="text-end">{{ po.supplier_address }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-muted">Hẹn giao hàng:</span>
+                    <span class="fw-bold text-danger">{{ po.expected_delivery_date }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-muted">Nhận thực tế:</span>
+                    <span class="fw-bold text-success">{{ po.actual_delivery_date or 'Chưa nhận' }}</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Order Tracking & Delivery Update Panel (Section 10) -->
+        <div class="card border-primary border-2 shadow-sm p-3 bg-white">
+            <div class="fw-bold text-primary mb-2 small text-uppercase">
+                <i class="fa-solid fa-truck-fast me-2"></i>Tiến Độ & Trạng Thái Giao Hàng
+            </div>
+
+            {% if po.status not in ('fully_received', 'completed', 'cancelled') %}
+            <form action="{{ url_for('procurement.update_po_status', po_id=po.id) }}" method="POST">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Cập nhật bước tiến độ:</label>
+                    <select name="status" class="form-select form-select-sm">
+                        <option value="sent_supplier" {% if po.status == 'sent_supplier' %}selected{% endif %}>
+                            1. Đã gửi đơn hàng cho Nhà Cung Cấp
+                        </option>
+                        <option value="in_transit" {% if po.status == 'in_transit' %}selected{% endif %}>
+                            2. NCC đang vận chuyển về Cảng Dịch Vụ VSP
+                        </option>
+                        <option value="fully_received">
+                            3. Đã nhận đủ hàng & Tự động ghi Phiếu Nhập Kho!
+                        </option>
+                        <option value="cancelled">Hủy đơn đặt hàng</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 fw-bold btn-sm">
+                    <i class="fa-solid fa-rotate me-1"></i> Cập Nhật Tiến Độ Giao Hàng
+                </button>
+            </form>
+            {% else %}
+            <div class="alert alert-success mb-0 small">
+                <i class="fa-solid fa-circle-check me-1"></i> Đơn hàng đã được ghi nhận Nhập Kho thành công (Phiếu nhập kho & Thẻ kho tự động cập nhật, ngăn chặn tăng trùng lặp tồn kho).
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

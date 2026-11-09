@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+
+{% block title %}Hồ Sơ Yêu Cầu {{ req.req_code }} - Vietsovpetro{% endblock %}
+
+{% block content %}
+<div class="breadcrumb-nav">
+    <a href="{{ url_for('dashboard.index') }}"><i class="fa-solid fa-house me-1"></i>Bảng Điều Khiển</a>
+    <span>/</span>
+    <a href="{{ url_for('employee.requests_list') }}">Yêu Cầu Vật Tư</a>
+    <span>/</span>
+    <span class="text-dark">{{ req.req_code }}</span>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2">
+            <h3 class="fw-bold text-dark mb-0">{{ req.req_code }}</h3>
+            {% if req.status == 'draft' %}<span class="badge bg-secondary">Bản nháp (Draft)</span>
+            {% elif req.status == 'submitted' %}<span class="badge bg-info text-dark">Bước 1: Chờ Cung ứng tiếp nhận</span>
+            {% elif req.status == 'received' %}<span class="badge bg-primary">Bước 2: Cung ứng đã tiếp nhận</span>
+            {% elif req.status == 'under_review' %}<span class="badge bg-info text-dark">Bước 3: Đang thẩm định kho</span>
+            {% elif req.status == 'pending_approval' %}<span class="badge bg-warning text-dark">Bước 4: Chờ Ban Lãnh Đạo duyệt</span>
+            {% elif req.status == 'approved' %}<span class="badge bg-success">Lãnh đạo đã duyệt</span>
+            {% elif req.status == 'purchasing' %}<span class="badge bg-primary">Bước 5-6: Đang lập đơn mua hàng (PO)</span>
+            {% elif req.status == 'goods_received' %}<span class="badge bg-info text-dark">Bước 7: Hàng mua đã về kho</span>
+            {% elif req.status == 'awaiting_issue' %}<span class="badge bg-warning text-dark">Bước 5/8: Kho sẵn sàng xuất cấp</span>
+            {% elif req.status == 'dispatched' %}<span class="badge text-white" style="background:#6B46C1">Bước 8: Kho đã xuất cấp - Chờ bàn giao</span>
+            {% elif req.status == 'completed' %}<span class="badge bg-success">Bước 9: Hoàn tất bàn giao hồ sơ</span>
+            {% elif req.status == 'rejected' %}<span class="badge bg-danger">Bị từ chối</span>{% endif %}
+        </div>
+        <div class="text-muted small mt-1">{{ req.title }}</div>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-house me-1"></i> Về Dashboard
+        </a>
+        <a href="{{ url_for('employee.requests_list') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-arrow-left me-1"></i> Danh Sách
+        </a>
+    </div>
+</div>
+
+<!-- 9-Step Supply Chain Stepper (Section 15) -->
+<div class="card border-0 shadow-sm p-4 bg-white mb-4">
+    <div class="fw-bold text-dark small mb-3 text-uppercase tracking-wider">
+        <i class="fa-solid fa-route text-primary me-2"></i>Tiến Trình Cung Ứng Vật Tư 9 Bước (End-to-End Workflow)
+    </div>
+
+    <div class="stepper-wrapper">
+        <!-- Step 1: Tạo & Gửi yêu cầu -->
+        <div class="stepper-item {% if req.status != 'draft' %}completed{% else %}active{% endif %}">
+            <div class="step-counter"><i class="fa-solid fa-check"></i></div>
+            <div class="step-name">1. Tạo & gửi yêu cầu</div>
+        </div>
+
+        <!-- Step 2: Cung ứng tiếp nhận -->
+        <div class="stepper-item {% if req.status not in ('draft', 'submitted') %}completed{% elif req.status == 'submitted' %}active{% endif %}">
+            <div class="step-counter">{% if req.status not in ('draft', 'submitted') %}<i class="fa-solid fa-check"></i>{% else %}2{% endif %}</div>
+            <div class="step-name">2. Cung ứng tiếp nhận</div>
+        </div>
+
+        <!-- Step 3: Kiểm tra kho -->
+        <div class="stepper-item {% if req.status in ('pending_approval', 'approved', 'purchasing', 'goods_received', 'awaiting_issue', 'dispatched', 'completed') %}completed{% elif req.status in ('received', 'under_review') %}active{% endif %}">
+            <div class="step-counter">{% if req.status in ('pending_approval', 'approved', 'purchasing', 'goods_received', 'awaiting_issue', 'dispatched', 'completed') %}<i class="fa-solid fa-check"></i>{% else %}3{% endif %}</div>
+            <div class="step-name">3. Thẩm định kho</div>
+        </div>
+
+        <!-- Step 4: Trình lãnh đạo phê duyệt -->
+        <div class="stepper-item {% if req.status in ('approved', 'purchasing', 'goods_received', 'awaiting_issue', 'dispatched', 'completed') %}completed{% elif req.status == 'pending_approval' %}active{% endif %}">
+            <div class="step-counter">{% if req.status in ('approved', 'purchasing', 'goods_received', 'awaiting_issue', 'dispatched', 'completed') %}<i class="fa-solid fa-check"></i>{% else %}4{% endif %}</div>
+            <div class="step-name">4. Lãnh đạo phê duyệt</div>
+        </div>
+
+        <!-- Step 5 & 6: Chuẩn bị kho / Mua hàng bổ sung -->
+        <div class="stepper-item {% if req.status in ('dispatched', 'completed') %}completed{% elif req.status in ('purchasing', 'goods_received', 'awaiting_issue') %}active{% endif %}">
+            <div class="step-counter">{% if req.status in ('dispatched', 'completed') %}<i class="fa-solid fa-check"></i>{% else %}5-7{% endif %}</div>
+            <div class="step-name">5-7. Chuẩn bị kho / Mua hàng</div>
+        </div>
+
+        <!-- Step 8: Xuất cấp vật tư -->
+        <div class="stepper-item {% if req.status in ('dispatched', 'completed') %}completed{% endif %}">
+            <div class="step-counter">{% if req.status == 'completed' %}<i class="fa-solid fa-check"></i>{% else %}8{% endif %}</div>
+            <div class="step-name">8. Xuất kho cấp phát</div>
+        </div>
+
+        <!-- Step 9: Bàn giao hoàn thành -->
+        <div class="stepper-item {% if req.status == 'completed' %}completed{% elif req.status == 'dispatched' %}active{% endif %}">
+            <div class="step-counter">{% if req.status == 'completed' %}<i class="fa-solid fa-check"></i>{% else %}9{% endif %}</div>
+            <div class="step-name">9. Bàn giao hoàn tất</div>
+        </div>
+    </div>
+
+    <!-- Feasibility Banner -->
+    <div class="mt-1">
+        {% if all_sufficient %}
+            <div class="alert alert-success d-flex align-items-center mb-0 py-2" role="alert">
+                <i class="fa-solid fa-circle-check fs-4 me-3 text-success"></i>
+                <div class="small">
+                    <strong>ĐỦ HÀNG KHẢ DỤNG TRONG KHO:</strong> Tất cả vật tư đề xuất đều có sẵn đủ số lượng khả dụng để kho xuất cấp ngay sau khi được phê duyệt.
+                </div>
+            </div>
+        {% else %}
+            <div class="alert alert-warning d-flex align-items-center mb-0 py-2" role="alert">
+                <i class="fa-solid fa-triangle-exclamation fs-4 me-3 text-warning"></i>
+                <div class="small">
+                    <strong>THIẾU HÀNG KHẢ DỤNG:</strong>
+                    {% for s in shortages %}
+                    <div>• {{ s.name }}: Cần <strong>{{ s.need }} {{ s.unit }}</strong>, Khả dụng: <strong>{{ s.available }} {{ s.unit }}</strong> (Thiếu <strong>{{ s.shortage }} {{ s.unit }}</strong>). Cần mua sắm bổ sung.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column: Items Table & Status History -->
+    <div class="col-lg-8">
+        <!-- Items Table -->
+        <div class="card border-0 shadow-sm p-3 bg-white mb-4">
+            <div class="fw-bold text-dark mb-3 small text-uppercase">
+                <i class="fa-solid fa-boxes-stacked me-2 text-primary"></i>Danh Sách Vật Tư Đề Xuất Cấp
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle mb-0 small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mã VT</th>
+                            <th>Tên Mặt Hàng</th>
+                            <th>ĐVT</th>
+                            <th class="text-center">Số Lượng Cần</th>
+                            <th class="text-center">Tồn Thực Tế</th>
+                            <th class="text-center">Đặt Trước</th>
+                            <th class="text-center">Khả Dụng</th>
+                            <th class="text-center">Đánh Giá</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for it in items %}
+                        <tr>
+                            <td class="fw-bold text-primary">{{ it.mat_code }}</td>
+                            <td>
+                                <div class="fw-bold">{{ it.mat_name }}</div>
+                                <div class="text-muted" style="font-size: 0.72rem;">Nhóm: {{ it.mat_category }}</div>
+                            </td>
+                            <td>{{ it.mat_unit }}</td>
+                            <td class="text-center fw-bold">{{ it.requested_qty }}</td>
+                            <td class="text-center">{{ it.current_stock }}</td>
+                            <td class="text-center text-muted">{{ it.reserved_qty }}</td>
+                            <td class="text-center fw-bold text-primary">{{ it.available_qty }}</td>
+                            <td class="text-center">
+                                {% if it.available_qty >= it.requested_qty %}
+                                    <span class="badge bg-success">Đủ hàng</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Thiếu {{ it.requested_qty - it.available_qty }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Processing History Timeline (Section 6 & 14) -->
+        <div class="card border-0 shadow-sm p-3 bg-white mb-4">
+            <div class="fw-bold text-dark mb-3 small text-uppercase">
+                <i class="fa-solid fa-clock-rotate-left me-2 text-primary"></i>Lịch Sử Thay Đổi Trạng Thái & Ý Kiến Xử Lý
+            </div>
+            <div class="list-group list-group-flush">
+                {% for h in history %}
+                <div class="list-group-item px-0 py-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="fw-bold small text-primary">
+                            <span class="badge bg-light text-dark border me-1">{{ h.status }}</span>
+                            {{ h.actor_name }} ({{ h.actor_role }})
+                        </div>
+                        <div class="text-muted" style="font-size: 0.7rem;">{{ h.created_at[:16] }}</div>
+                    </div>
+                    <div class="small mt-1 text-secondary">{{ h.notes }}</div>
+                </div>
+                {% else %}
+                <div class="text-muted small py-2">Chưa có lịch sử thay đổi trạng thái.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Requisition Information & Actions -->
+    <div class="col-lg-4">
+        <!-- Requisition Metadata -->
+        <div class="card border-0 shadow-sm p-3 bg-white mb-4">
+            <div class="fw-bold text-dark mb-3 small text-uppercase">
+                <i class="fa-solid fa-circle-info me-2 text-primary"></i>Thông Tin Chi Tiết Hồ Sơ
+            </div>
+            <ul class="list-group list-group-flush small">
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-muted">Người đề xuất:</span>
+                    <span class="fw-bold">{{ req.requester_name }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-muted">Mã nhân viên:</span>
+                    <span>{{ req.requester_emp_id }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-muted">Bộ phận:</span>
+                    <span class="fw-bold">{{ req.department }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-muted">Hạn cần vật tư:</span>
+                    <span class="fw-bold text-danger">{{ req.required_date or 'Tiêu chuẩn' }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-muted">Độ ưu tiên:</span>
+                    <span>
+                        {% if req.priority == 'urgent' %}<span class="badge bg-danger">Khẩn cấp</span>
+                        {% elif req.priority == 'high' %}<span class="badge bg-warning text-dark">Cao</span>
+                        {% else %}<span class="badge bg-secondary">Bình thường</span>{% endif %}
+                    </span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-muted">Thời điểm gửi:</span>
+                    <span>{{ req.created_at[:16] }}</span>
+                </li>
+            </ul>
+
+            <div class="mt-2 pt-2 border-top">
+                <span class="text-muted small fw-bold">Mục đích / Lý do đề xuất:</span>
+                <p class="small text-dark mt-1 mb-0">{{ req.reason }}</p>
+            </div>
+        </div>
+
+        <!-- Role-Based Action Panel (Enforces RBAC on backend & frontend) -->
+        <div class="card border-primary border-2 shadow-sm p-3 bg-white">
+            <div class="fw-bold text-primary mb-2 small text-uppercase">
+                <i class="fa-solid fa-bolt me-2"></i>Thao Tác Nghiệp Vụ
+            </div>
+
+            <!-- Employee Action: Edit draft if draft -->
+            {% if req.status == 'draft' and (req.user_id == session.get('user_id') or session.get('role') == 'admin') %}
+            <div class="small text-muted mb-2">Hồ sơ đang ở trạng thái Bản nháp. Bạn có thể sửa hoặc chính thức gửi:</div>
+            <a href="{{ url_for('employee.edit_draft', req_id=req.id) }}" class="btn btn-warning text-dark w-100 fw-bold btn-sm mb-2">
+                <i class="fa-solid fa-pen-to-square me-1"></i> Chỉnh Sửa & Gửi Bản Nháp
+            </a>
+            {% endif %}
+
+            <!-- Supply Department Action: Receive & Review -->
+            {% if session.get('role') in ('procurement', 'admin') and req.status == 'submitted' %}
+            <div class="small text-muted mb-2">Bạn là cán bộ <strong>Phòng Cung Ứng</strong>. Hãy tiếp nhận hồ sơ:</div>
+            <form action="{{ url_for('procurement.receive_request', req_id=req.id) }}" method="POST">
+                <button type="submit" class="btn btn-primary w-100 fw-bold btn-sm">
+                    <i class="fa-solid fa-inbox me-1"></i> Bước 2: Tiếp Nhận Yêu Cầu
+                </button>
+            </form>
+            {% endif %}
+
+            <!-- Supply Department Action: Submit to Management -->
+            {% if session.get('role') in ('procurement', 'admin') and req.status in ('received', 'under_review') %}
+            <div class="small text-muted mb-2">Phòng Cung Ứng kiểm tra kho và trình Ban Lãnh Đạo phê duyệt:</div>
+            <form action="{{ url_for('procurement.submit_to_manager', req_id=req.id) }}" method="POST">
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Ghi chú thẩm định kho:</label>
+                    <textarea name="procurement_note" class="form-control form-control-sm" rows="2" placeholder="Xác nhận tồn kho / đề xuất mua sắm..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 fw-bold btn-sm">
+                    <i class="fa-solid fa-paper-plane me-1"></i> Bước 3 & 4: Trình Ban Lãnh Đạo
+                </button>
+            </form>
+            {% endif %}
+
+            <!-- Management Action: Approve or Reject (Section 7) -->
+            {% if session.get('role') in ('manager', 'admin') and req.status == 'pending_approval' %}
+            <div class="small text-muted mb-2">Bạn là <strong>Ban Lãnh Đạo</strong>. Vui lòng phê duyệt hoặc từ chối (yêu cầu ghi rõ lý do nếu từ chối):</div>
+            <form action="{{ url_for('manager.approve_request', req_id=req.id) }}" method="POST">
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Ý kiến / Chỉ đạo của Lãnh đạo:</label>
+                    <textarea name="manager_note" class="form-control form-control-sm" rows="2" placeholder="Ghi rõ lý do nếu từ chối hoặc chỉ đạo cấp phát..."></textarea>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" name="decision" value="approve" class="btn btn-success flex-grow-1 fw-bold btn-sm">
+                        <i class="fa-solid fa-check me-1"></i> Phê Duyệt
+                    </button>
+                    <button type="submit" name="decision" value="reject" class="btn btn-danger btn-sm">
+                        <i class="fa-solid fa-xmark me-1"></i> Từ Chối
+                    </button>
+                </div>
+            </form>
+            {% endif %}
+
+            <!-- Procurement Action: Create PO if shortage / purchasing -->
+            {% if session.get('role') in ('procurement', 'admin') and req.status == 'purchasing' %}
+            <div class="small text-muted mb-2">Hồ sơ đã duyệt nhưng kho thiếu hàng. Hãy lập đơn đặt hàng (PO) mua từ nhà cung cấp:</div>
+            <a href="{{ url_for('procurement.create_po', req_id=req.id) }}" class="btn btn-primary w-100 fw-bold btn-sm">
+                <i class="fa-solid fa-cart-plus me-1"></i> Bước 6: Lập Đơn Đặt Hàng (PO)
+            </a>
+            {% endif %}
+
+            <!-- Warehouse Action: Dispatch Requisition -->
+            {% if session.get('role') in ('warehouse', 'admin') and req.status in ('awaiting_issue', 'approved') %}
+            <div class="small text-muted mb-2">Bạn là <strong>Thủ Kho</strong>. Vật tư đã sẵn sàng, hãy thực hiện xuất kho cấp phát:</div>
+            <form action="{{ url_for('warehouse.dispatch_requisition', req_id=req.id) }}" method="POST">
+                <button type="submit" class="btn btn-warning text-dark w-100 fw-bold btn-sm">
+                    <i class="fa-solid fa-circle-arrow-up me-1"></i> Bước 8: Xuất Kho Cấp Phát
+                </button>
+            </form>
+            {% endif %}
+
+            <!-- Employee Action: Handover Confirmation (Step 9) -->
+            {% if req.status == 'dispatched' %}
+            <div class="small text-muted mb-2">Kho đã xuất cấp vật tư. Người nhận vui lòng kiểm đếm và ký xác nhận bàn giao:</div>
+            <form action="{{ url_for('employee.confirm_receipt', req_id=req.id) }}" method="POST">
+                <button type="submit" class="btn btn-success w-100 fw-bold">
+                    <i class="fa-solid fa-signature me-1"></i> Bước 9: Xác Nhận Đã Nhận Đủ Vật Tư
+                </button>
+            </form>
+            {% endif %}
+
+            {% if req.status == 'completed' %}
+            <div class="text-center py-2 text-success">
+                <i class="fa-solid fa-circle-check fs-2 mb-2"></i>
+                <div class="fw-bold">Yêu cầu đã hoàn tất thành công!</div>
+                <div class="small text-muted">Vật tư đã được bàn giao và lưu hồ sơ lưu trữ.</div>
+            </div>
+            {% endif %}
+
+            {% if req.status == 'rejected' %}
+            <div class="text-center py-2 text-danger">
+                <i class="fa-solid fa-circle-xmark fs-2 mb-2"></i>
+                <div class="fw-bold">Yêu cầu đã bị từ chối</div>
+                <div class="small text-muted">{{ req.manager_note }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

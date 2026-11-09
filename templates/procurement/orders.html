@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Quản Lý Đơn Đặt Hàng Mua Sắm (Purchase Orders){% endblock %}
+
+{% block content %}
+<div class="breadcrumb-nav">
+    <a href="{{ url_for('dashboard.index') }}"><i class="fa-solid fa-house me-1"></i>Bảng Điều Khiển</a>
+    <span>/</span>
+    <span class="text-dark">Quản Lý Đơn Mua Hàng (PO)</span>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-dark mb-0">Quản Lý Đơn Mua Hàng & Tiến Độ Giao Hàng (PO)</h3>
+        <p class="text-muted small mb-0">Theo dõi hợp đồng đặt hàng từ các đối tác cung ứng thiết bị vật tư biển và lặn</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-house me-1"></i> Về Dashboard
+        </a>
+        <a href="{{ url_for('procurement.create_po') }}" class="btn btn-primary btn-sm shadow-sm">
+            <i class="fa-solid fa-cart-plus me-1"></i> Lập Đơn Đặt Hàng Mới (PO)
+        </a>
+    </div>
+</div>
+
+<!-- Search & Status Filters -->
+<div class="card border-0 shadow-sm p-3 mb-4 bg-white">
+    <form method="GET" action="{{ url_for('procurement.orders_list') }}" class="row g-2 align-items-center">
+        <div class="col-md-6">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
+                <input type="text" name="search" class="form-control" placeholder="Tìm theo mã PO, tên nhà cung cấp, mã YCVT..." value="{{ search or '' }}">
+            </div>
+        </div>
+        <div class="col-md-4">
+            <select name="status" class="form-select form-select-sm">
+                <option value="">-- Tất cả trạng thái đơn hàng --</option>
+                <option value="waiting_purchase" {% if current_status == 'waiting_purchase' %}selected{% endif %}>Chờ mua sắm</option>
+                <option value="po_created" {% if current_status == 'po_created' %}selected{% endif %}>Đã lập đơn PO</option>
+                <option value="sent_supplier" {% if current_status == 'sent_supplier' %}selected{% endif %}>Đã gửi NCC</option>
+                <option value="in_transit" {% if current_status == 'in_transit' %}selected{% endif %}>Đang vận chuyển</option>
+                <option value="fully_received" {% if current_status == 'fully_received' %}selected{% endif %}>Đã nhận & nhập kho</option>
+                <option value="completed" {% if current_status == 'completed' %}selected{% endif %}>Hoàn tất</option>
+                <option value="cancelled" {% if current_status == 'cancelled' %}selected{% endif %}>Đã hủy</option>
+            </select>
+        </div>
+        <div class="col-md-2 d-flex gap-1">
+            <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Lọc</button>
+            <a href="{{ url_for('procurement.orders_list') }}" class="btn btn-outline-secondary btn-sm">Xóa Lọc</a>
+        </div>
+    </form>
+</div>
+
+<!-- Orders Table (Section 10) -->
+<div class="card border-0 shadow-sm bg-white overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small">
+                <tr>
+                    <th>Mã Đơn PO</th>
+                    <th>Nhà Cung Cấp</th>
+                    <th>Yêu Cầu Liên Quan</th>
+                    <th>Tổng Giá Trị (VNĐ)</th>
+                    <th>Ngày Đặt</th>
+                    <th>Hẹn Giao</th>
+                    <th>Ngày Nhận Thực Tế</th>
+                    <th>Trạng Thái</th>
+                    <th class="text-end">Chi Tiết</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for po in purchase_orders %}
+                <tr>
+                    <td class="fw-bold text-primary">{{ po.po_code }}</td>
+                    <td class="fw-bold text-dark">{{ po.supplier_name }}</td>
+                    <td>
+                        {% if po.requisition_code %}
+                            <span class="badge bg-light text-dark border">{{ po.requisition_code }}</span>
+                        {% else %}
+                            <span class="text-muted small">Mua dự trữ kho</span>
+                        {% endif %}
+                    </td>
+                    <td class="fw-bold text-dark">{{ "{:,.0f}".format(po.total_amount) }} đ</td>
+                    <td class="small">{{ po.order_date }}</td>
+                    <td class="small text-danger fw-bold">{{ po.expected_delivery_date or 'Chưa hẹn' }}</td>
+                    <td class="small text-success">{{ po.actual_delivery_date or '-' }}</td>
+                    <td>
+                        {% if po.status == 'waiting_purchase' %}<span class="badge bg-secondary">Chờ mua sắm</span>
+                        {% elif po.status == 'po_created' %}<span class="badge bg-primary">Đã lập đơn PO</span>
+                        {% elif po.status == 'sent_supplier' %}<span class="badge bg-info text-dark">Đã gửi NCC</span>
+                        {% elif po.status == 'in_transit' %}<span class="badge bg-warning text-dark">Đang vận chuyển</span>
+                        {% elif po.status == 'fully_received' %}<span class="badge bg-success">Đã nhập kho</span>
+                        {% elif po.status == 'completed' %}<span class="badge bg-success">Hoàn thành</span>
+                        {% elif po.status == 'cancelled' %}<span class="badge bg-danger">Đã hủy</span>{% endif %}
+                    </td>
+                    <td class="text-end">
+                        <a href="{{ url_for('procurement.po_detail', po_id=po.id) }}" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.78rem;">
+                            <i class="fa-solid fa-eye me-1"></i> Xem
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" class="text-center py-5 text-muted">
+                        <i class="fa-solid fa-cart-shopping fs-2 mb-2 d-block text-secondary"></i>
+                        Chưa có đơn đặt hàng (Purchase Order) nào trong hệ thống.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

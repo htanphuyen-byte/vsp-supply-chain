@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Nhập Kho Vật Tư{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm bg-white p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+                <div>
+                    <h4 class="fw-bold text-primary mb-1">Phiếu Nhập Kho Vật Tư / Phụ Tùng</h4>
+                    <p class="text-muted small mb-0">Cập nhật số lượng vật tư nhập vào kho cảng dịch vụ</p>
+                </div>
+                <a href="{{ url_for('warehouse.inventory') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fa-solid fa-arrow-left me-1"></i> Quay lại kho
+                </a>
+            </div>
+
+            <form action="{{ url_for('warehouse.stock_in') }}" method="POST">
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">Chọn vật tư nhập kho *</label>
+                    <select name="material_id" class="form-select" required>
+                        <option value="">-- Chọn mặt hàng cần nhập thêm --</option>
+                        {% for m in materials %}
+                        <option value="{{ m.id }}">[{{ m.code }}] {{ m.name }} (Hiện có: {{ m.current_stock }} {{ m.unit }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small">Số lượng nhập *</label>
+                        <input type="number" name="quantity" class="form-control" min="1" value="10" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small">Phương thức nhập</label>
+                        <select name="ref_type" class="form-select">
+                            <option value="MANUAL">Nhập kho định kỳ / kiểm kê</option>
+                            <option value="PO">Nhập từ Đơn đặt hàng (PO)</option>
+                            <option value="RETURN">Thu hồi vật tư từ tàu / giàn</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">Mã chứng từ / Phiếu giao nhận kèm theo</label>
+                    <input type="text" name="ref_id" class="form-control" placeholder="VD: BBGN-2026-091">
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold small">Ghi chú tình trạng hàng hóa</label>
+                    <textarea name="notes" class="form-control" rows="2" placeholder="Hàng mới 100%, nguyên đai nguyên kiện..."></textarea>
+                </div>
+
+                <div class="text-end border-top pt-3">
+                    <button type="submit" class="btn btn-success px-4 fw-bold">
+                        <i class="fa-solid fa-circle-arrow-down me-1"></i> Xác Nhận Nhập Kho
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

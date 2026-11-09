@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Danh Sách Yêu Cầu Cấp Phát Vật Tư{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb navigation (Section 2) -->
+<div class="breadcrumb-nav">
+    <a href="{{ url_for('dashboard.index') }}"><i class="fa-solid fa-house me-1"></i>Bảng Điều Khiển</a>
+    <span>/</span>
+    <span class="text-dark">Quản Lý Yêu Cầu Vật Tư</span>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-dark mb-0">Quản Lý Hồ Sơ Yêu Cầu Cấp Phát Vật Tư</h3>
+        <p class="text-muted small mb-0">Theo dõi toàn diện quy trình cung ứng từ khâu đề xuất đến khi bàn giao thực tế</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-arrow-left me-1"></i> Về Dashboard
+        </a>
+        <a href="{{ url_for('employee.create_request') }}" class="btn btn-primary btn-sm shadow-sm">
+            <i class="fa-solid fa-plus-circle me-1"></i> Tạo Yêu Cầu Mới
+        </a>
+    </div>
+</div>
+
+<!-- Search & Advanced Filters (Section 6) -->
+<div class="card border-0 shadow-sm p-3 mb-4 bg-white">
+    <form method="GET" action="{{ url_for('employee.requests_list') }}" class="row g-2 align-items-center">
+        <div class="col-md-3">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
+                <input type="text" name="search" class="form-control" placeholder="Tìm mã YCVT, tiêu đề, người gửi..." value="{{ search or '' }}">
+            </div>
+        </div>
+        <div class="col-md-2">
+            <select name="status" class="form-select form-select-sm">
+                <option value="">-- Tất cả trạng thái --</option>
+                <option value="draft" {% if current_status == 'draft' %}selected{% endif %}>Bản nháp</option>
+                <option value="submitted" {% if current_status == 'submitted' %}selected{% endif %}>Chờ cung ứng</option>
+                <option value="received" {% if current_status == 'received' %}selected{% endif %}>Cung ứng đã nhận</option>
+                <option value="under_review" {% if current_status == 'under_review' %}selected{% endif %}>Đang kiểm kho</option>
+                <option value="pending_approval" {% if current_status == 'pending_approval' %}selected{% endif %}>Chờ Lãnh đạo duyệt</option>
+                <option value="approved" {% if current_status == 'approved' %}selected{% endif %}>Đã duyệt</option>
+                <option value="purchasing" {% if current_status == 'purchasing' %}selected{% endif %}>Đang mua sắm (PO)</option>
+                <option value="awaiting_issue" {% if current_status == 'awaiting_issue' %}selected{% endif %}>Sẵn sàng xuất kho</option>
+                <option value="dispatched" {% if current_status == 'dispatched' %}selected{% endif %}>Kho đã xuất cấp</option>
+                <option value="completed" {% if current_status == 'completed' %}selected{% endif %}>Đã bàn giao hoàn tất</option>
+                <option value="rejected" {% if current_status == 'rejected' %}selected{% endif %}>Bị từ chối</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <input type="text" name="department" class="form-control form-control-sm" placeholder="Lọc theo bộ phận..." value="{{ dept_filter or '' }}">
+        </div>
+        <div class="col-md-3 d-flex gap-1">
+            <input type="date" name="start_date" class="form-control form-control-sm" value="{{ start_date or '' }}" title="Từ ngày">
+            <input type="date" name="end_date" class="form-control form-control-sm" value="{{ end_date or '' }}" title="Đến ngày">
+        </div>
+        <div class="col-md-2 d-flex gap-1">
+            <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Lọc</button>
+            <a href="{{ url_for('employee.requests_list') }}" class="btn btn-outline-secondary btn-sm">Xóa Lọc</a>
+        </div>
+    </form>
+</div>
+
+<!-- Requests Table (Section 6) -->
+<div class="card border-0 shadow-sm bg-white overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small">
+                <tr>
+                    <th>Mã Yêu Cầu</th>
+                    <th>Ngày Tạo</th>
+                    <th>Tiêu Đề & Vật Tư Đề Nghị</th>
+                    <th>Người Gửi / Bộ Phận</th>
+                    <th>Hạn Cần Hàng</th>
+                    <th>Ưu Tiên</th>
+                    <th>Trạng Thái Hiện Tại</th>
+                    <th class="text-end">Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in requisitions %}
+                <tr>
+                    <td class="fw-bold text-primary">{{ r.req_code }}</td>
+                    <td class="small text-muted">{{ r.created_at[:10] }}</td>
+                    <td>
+                        <div class="fw-medium text-dark">{{ r.title }}</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">
+                            <i class="fa-solid fa-boxes-stacked me-1"></i>{{ r.materials_summary or 'Chưa có mặt hàng' }}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="small fw-bold">{{ r.requester_name }}</div>
+                        <div class="small text-muted" style="font-size: 0.72rem;">{{ r.requester_dept }}</div>
+                    </td>
+                    <td class="small">{{ r.required_date or 'Tiêu chuẩn' }}</td>
+                    <td>
+                        {% if r.priority == 'urgent' %}<span class="badge bg-danger">Khẩn cấp</span>
+                        {% elif r.priority == 'high' %}<span class="badge bg-warning text-dark">Cao</span>
+                        {% else %}<span class="badge bg-secondary">Bình thường</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if r.status == 'draft' %}<span class="badge bg-secondary">Bản nháp</span>
+                        {% elif r.status == 'submitted' %}<span class="badge bg-info text-dark">Chờ cung ứng</span>
+                        {% elif r.status == 'received' %}<span class="badge bg-primary">Cung ứng đã nhận</span>
+                        {% elif r.status == 'under_review' %}<span class="badge bg-info text-dark">Đang kiểm kho</span>
+                        {% elif r.status == 'pending_approval' %}<span class="badge bg-warning text-dark">Chờ Lãnh đạo duyệt</span>
+                        {% elif r.status == 'approved' %}<span class="badge bg-success">Đã phê duyệt</span>
+                        {% elif r.status == 'purchasing' %}<span class="badge bg-primary">Đang mua sắm</span>
+                        {% elif r.status == 'awaiting_issue' %}<span class="badge bg-warning text-dark">Sẵn sàng xuất kho</span>
+                        {% elif r.status == 'dispatched' %}<span class="badge text-white" style="background:#6B46C1">Kho đã xuất cấp</span>
+                        {% elif r.status == 'completed' %}<span class="badge bg-success">Đã bàn giao</span>
+                        {% elif r.status == 'rejected' %}<span class="badge bg-danger">Bị từ chối</span>{% endif %}
+                    </td>
+                    <td class="text-end">
+                        {% if r.status == 'draft' and (r.user_id == session.get('user_id') or session.get('role') == 'admin') %}
+                        <a href="{{ url_for('employee.edit_draft', req_id=r.id) }}" class="btn btn-sm btn-outline-warning text-dark me-1 py-0 px-2" style="font-size: 0.78rem;">
+                            <i class="fa-solid fa-pen-to-square"></i> Sửa
+                        </a>
+                        {% endif %}
+                        <a href="{{ url_for('employee.request_detail', req_id=r.id) }}" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.78rem;">
+                            <i class="fa-solid fa-eye me-1"></i> Chi Tiết
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="text-center py-5 text-muted">
+                        <i class="fa-solid fa-folder-open fs-2 mb-2 d-block text-secondary"></i>
+                        Chưa có yêu cầu vật tư nào phù hợp tiêu chí lọc.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block title %}Báo Cáo & Thống Kê Chuỗi Cung Ứng - Vietsovpetro{% endblock %}
+
+{% block content %}
+<div class="breadcrumb-nav">
+    <a href="{{ url_for('dashboard.index') }}"><i class="fa-solid fa-house me-1"></i>Bảng Điều Khiển</a>
+    <span>/</span>
+    <span class="text-dark">Báo Cáo & Thống Kê</span>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-dark mb-0">Báo Cáo & Thống Kê Tổng Hợp Chuỗi Cung Ứng</h3>
+        <p class="text-muted small mb-0">Phân tích đa chiều: Tồn kho thực tế, hàng đặt trước, tiến độ cấp phát và chi phí mua sắm</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-house me-1"></i> Về Dashboard
+        </a>
+        <button onclick="window.print()" class="btn btn-primary btn-sm shadow-sm">
+            <i class="fa-solid fa-print me-1"></i> In / Xuất Báo Cáo (PDF/Print)
+        </button>
+    </div>
+</div>
+
+<!-- Filters Bar (Section 12) -->
+<div class="card border-0 shadow-sm p-3 mb-4 bg-white">
+    <form method="GET" action="{{ url_for('reports.index') }}" class="row g-2 align-items-center">
+        <div class="col-md-4">
+            <select name="department" class="form-select form-select-sm">
+                <option value="">-- Lọc theo tất cả phòng ban / hải đội --</option>
+                {% for d in departments %}
+                <option value="{{ d }}" {% if selected_dept == d %}selected{% endif %}>{{ d }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <input type="date" name="start_date" class="form-control form-control-sm" value="{{ start_date or '' }}" title="Từ ngày">
+        </div>
+        <div class="col-md-3">
+            <input type="date" name="end_date" class="form-control form-control-sm" value="{{ end_date or '' }}" title="Đến ngày">
+        </div>
+        <div class="col-md-2 d-flex gap-1">
+            <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Xem Thống Kê</button>
+            <a href="{{ url_for('reports.index') }}" class="btn btn-outline-secondary btn-sm">Xóa Lọc</a>
+        </div>
+    </form>
+</div>
+
+<!-- Inventory Valuation Summary (Section 8 & 12) -->
+<div class="card border-0 shadow-sm p-4 bg-white mb-4">
+    <div class="row align-items-center">
+        <div class="col-md-4 border-end">
+            <div class="text-muted small fw-bold text-uppercase">TỔNG GIÁ TRỊ VẬT TƯ TỒN KHO</div>
+            <div class="fs-2 fw-bold text-primary mt-1">{{ "{:,.0f}".format(total_inv_value) }} đ</div>
+            <div class="small text-muted mb-2">Ước tính theo đơn giá danh mục dự toán</div>
+            <div class="d-flex gap-2">
+                <span class="badge bg-light text-dark border">Tồn thực tế: <strong>{{ total_on_hand_all }}</strong></span>
+                <span class="badge bg-warning text-dark">Đặt trước: <strong>{{ total_reserved_all }}</strong></span>
+                <span class="badge bg-success text-white">Khả dụng: <strong>{{ total_available_all }}</strong></span>
+            </div>
+        </div>
+        <div class="col-md-8 px-4">
+            <div class="small fw-bold text-dark mb-2 text-uppercase">Phân tích tồn kho theo nhóm danh mục:</div>
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered align-middle mb-0 small">
+                    <thead class="table-light">
+                        <tr class="text-muted">
+                            <th>Nhóm Vật Tư</th>
+                            <th class="text-center">Số Mã</th>
+                            <th class="text-center">Tồn Kho</th>
+                            <th class="text-center">Đặt Trước</th>
+                            <th class="text-center">Khả Dụng</th>
+                            <th class="text-end">Giá Trị Tồn (VNĐ)</th>
+                            <th class="text-center">Cảnh Báo Min</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in inv_summary %}
+                        <tr>
+                            <td class="fw-bold">{{ row.category }}</td>
+                            <td class="text-center">{{ row.total_items }} mã</td>
+                            <td class="text-center fw-bold">{{ row.total_on_hand }}</td>
+                            <td class="text-center text-muted">{{ row.total_reserved }}</td>
+                            <td class="text-center fw-bold text-primary">{{ row.total_available }}</td>
+                            <td class="text-end fw-bold text-dark">{{ "{:,.0f}".format(row.total_value or 0) }} đ</td>
+                            <td class="text-center">
+                                {% if row.low_stock_count > 0 %}
+                                    <span class="badge bg-danger">{{ row.low_stock_count }} mã cần nhập</span>
+                                {% else %}
+                                    <span class="badge bg-success">An toàn</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Requisitions by Department Report -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm p-3 bg-white h-100">
+            <div class="fw-bold text-dark mb-3 small text-uppercase">
+                <i class="fa-solid fa-sitemap me-2 text-primary"></i>Tình Hình Cấp Phát Theo Bộ Phận
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle mb-0 small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Bộ Phận / Đội</th>
+                            <th class="text-center">Tổng Yêu Cầu</th>
+                            <th class="text-center text-success">Đã Hoàn Tất</th>
+                            <th class="text-center text-warning">Đang Xử Lý</th>
+                            <th class="text-center text-danger">Từ Chối</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in dept_stats %}
+                        <tr>
+                            <td class="fw-bold">{{ d.department }}</td>
+                            <td class="text-center fw-bold">{{ d.total_reqs }}</td>
+                            <td class="text-center text-success fw-bold">{{ d.completed_reqs }}</td>
+                            <td class="text-center text-warning fw-bold">{{ d.active_reqs }}</td>
+                            <td class="text-center text-danger fw-bold">{{ d.rejected_reqs }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">Chưa có số liệu yêu cầu theo bộ phận.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Procurement Expenditure by Supplier -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm p-3 bg-white h-100">
+            <div class="fw-bold text-dark mb-3 small text-uppercase">
+                <i class="fa-solid fa-cart-shopping me-2 text-info"></i>Tình Hình Mua Sắm Theo Nhà Cung Cấp
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle mb-0 small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nhà Cung Cấp</th>
+                            <th>Mã NCC</th>
+                            <th class="text-center">Số Đơn Hàng</th>
+                            <th class="text-end">Tổng Chi Phí (VNĐ)</th>
+                            <th>Trạng Thái</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for po in po_stats %}
+                        <tr>
+                            <td class="fw-bold">{{ po.supplier_name }}</td>
+                            <td>{{ po.supplier_code }}</td>
+                            <td class="text-center fw-bold">{{ po.total_orders }}</td>
+                            <td class="text-end fw-bold text-danger">{{ "{:,.0f}".format(po.total_spend or 0) }} đ</td>
+                            <td><span class="badge bg-light text-dark border">{{ po.status }}</span></td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">Chưa có đơn đặt hàng nào phát sinh.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Goods Receipts & Issues Reports (Section 12) -->
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm p-3 bg-white h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="fw-bold text-dark small text-uppercase">
+                    <i class="fa-solid fa-circle-arrow-down me-2 text-success"></i>Báo Cáo Nhập Kho Gần Đây
+                </div>
+                <a href="{{ url_for('warehouse.goods_receipts') }}" class="small text-decoration-none">Xem toàn bộ &rarr;</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle mb-0 small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mã Phiếu</th>
+                            <th>Ngày Nhập</th>
+                            <th>Vật Tư</th>
+                            <th class="text-center">Số Lượng</th>
+                            <th>Nguồn Hàng</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for gr in recent_receipts %}
+                        <tr>
+                            <td class="fw-bold text-primary">{{ gr.receipt_code }}</td>
+                            <td class="small">{{ gr.receipt_date }}</td>
+                            <td>{{ gr.mat_name }}</td>
+                            <td class="text-center fw-bold text-success">+{{ gr.quantity }} {{ gr.unit }}</td>
+                            <td class="small text-muted">{{ gr.supplier_name or 'Nội bộ' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-3 text-muted">Chưa có bản ghi nhập kho.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm p-3 bg-white h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="fw-bold text-dark small text-uppercase">
+                    <i class="fa-solid fa-circle-arrow-up me-2 text-danger"></i>Báo Cáo Xuất Kho Gần Đây
+                </div>
+                <a href="{{ url_for('warehouse.goods_issues') }}" class="small text-decoration-none">Xem toàn bộ &rarr;</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle mb-0 small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mã Phiếu</th>
+                            <th>Ngày Xuất</th>
+                            <th>Vật Tư</th>
+                            <th class="text-center">Số Lượng</th>
+                            <th>Người Nhận / Bộ Phận</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for gi in recent_issues %}
+                        <tr>
+                            <td class="fw-bold text-primary">{{ gi.issue_code }}</td>
+                            <td class="small">{{ gi.issue_date }}</td>
+                            <td>{{ gi.mat_name }}</td>
+                            <td class="text-center fw-bold text-danger">-{{ gi.quantity }} {{ gi.unit }}</td>
+                            <td class="small">{{ gi.recipient_name }} ({{ gi.department }})</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-3 text-muted">Chưa có bản ghi xuất kho.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

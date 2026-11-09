@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}VSP SUPPLY CHAIN MANAGEMENT{% endblock %} - Vietsovpetro</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Custom Theme CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container-fluid p-0">
+        <div class="row g-0">
+            <!-- Left Sidebar Navigation -->
+            <div class="col-md-3 col-lg-2 sidebar d-none d-md-block">
+                <div class="brand text-center">
+                    <a href="{{ url_for('dashboard.index') }}" class="text-white text-decoration-none d-block">
+                        <div class="d-flex align-items-center justify-content-center mb-1">
+                            <i class="fa-solid fa-anchor text-warning fs-3 me-2"></i>
+                            <span class="fs-5 fw-bold tracking-wide">VIETSOVPETRO</span>
+                        </div>
+                        <div class="small text-white-50" style="font-size: 0.78rem;">XN Vận Tải Biển & Lặn</div>
+                        <div class="badge bg-primary text-uppercase mt-1" style="font-size: 0.65rem;">VSP SUPPLY CHAIN</div>
+                    </a>
+                </div>
+
+                <!-- User Profile Card -->
+                <div class="px-3 py-3 border-bottom border-secondary border-opacity-25">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle bg-warning text-dark fw-bold d-flex align-items-center justify-content-center me-2 flex-shrink-0" style="width: 38px; height: 38px;">
+                            {{ session.get('full_name', 'U')[:1] }}
+                        </div>
+                        <div class="overflow-hidden">
+                            <div class="fw-bold text-truncate text-white small">{{ session.get('full_name') }}</div>
+                            <div class="text-white-50 small text-truncate" style="font-size: 0.72rem;">{{ session.get('position', 'Cán bộ') }}</div>
+                            <span class="badge badge-role-{{ session.get('role') }}" style="font-size: 0.68rem;">
+                                {% if session.get('role') == 'admin' %}Quản Trị Admin
+                                {% elif session.get('role') == 'manager' %}Ban Lãnh Đạo
+                                {% elif session.get('role') == 'procurement' %}Phòng Cung Ứng
+                                {% elif session.get('role') == 'warehouse' %}Nhân Viên Kho
+                                {% else %}Nhân Viên Đề Xuất{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nav Menu -->
+                <ul class="nav flex-column py-2">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}" href="{{ url_for('dashboard.index') }}">
+                            <i class="fa-solid fa-chart-pie"></i> Bảng Điều Khiển
+                        </a>
+                    </li>
+
+                    <!-- Material Request Management (All authenticated roles) -->
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'employee.' in request.endpoint %}active{% endif %}" href="{{ url_for('employee.requests_list') }}">
+                            <i class="fa-solid fa-clipboard-list"></i> Yêu Cầu Cấp Vật Tư
+                        </a>
+                    </li>
+
+                    <!-- Manager Approval (Manager & Admin) -->
+                    {% if session.get('role') in ('manager', 'admin') %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'manager.' in request.endpoint %}active{% endif %}" href="{{ url_for('manager.approvals_list') }}">
+                            <i class="fa-solid fa-stamp"></i> Duyệt Yêu Cầu
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <!-- Procurement & PO (Procurement & Admin) -->
+                    {% if session.get('role') in ('procurement', 'admin') %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'procurement.' in request.endpoint %}active{% endif %}" href="{{ url_for('procurement.orders_list') }}">
+                            <i class="fa-solid fa-cart-shopping"></i> Mua Hàng & PO
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'supplier.' in request.endpoint %}active{% endif %}" href="{{ url_for('supplier.list_suppliers') }}">
+                            <i class="fa-solid fa-truck-field"></i> Nhà Cung Cấp
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <!-- Warehouse Management (Warehouse & Admin) -->
+                    {% if session.get('role') in ('warehouse', 'admin') %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'warehouse.inventory' %}active{% endif %}" href="{{ url_for('warehouse.inventory') }}">
+                            <i class="fa-solid fa-boxes-stacked"></i> Danh Mục & Tồn Kho
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'warehouse.goods_receipts' %}active{% endif %}" href="{{ url_for('warehouse.goods_receipts') }}">
+                            <i class="fa-solid fa-circle-arrow-down"></i> Phiếu Nhập Kho
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'warehouse.goods_issues' %}active{% endif %}" href="{{ url_for('warehouse.goods_issues') }}">
+                            <i class="fa-solid fa-circle-arrow-up"></i> Phiếu Xuất Kho
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'warehouse.transactions' %}active{% endif %}" href="{{ url_for('warehouse.transactions') }}">
+                            <i class="fa-solid fa-book-open"></i> Thẻ Kho / Lịch Sử
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <!-- Reports & Statistics (All roles) -->
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'reports.' in request.endpoint %}active{% endif %}" href="{{ url_for('reports.index') }}">
+                            <i class="fa-solid fa-chart-line"></i> Báo Cáo & Thống Kê
+                        </a>
+                    </li>
+
+                    <!-- Admin Management (Admin only) -->
+                    {% if session.get('role') == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'admin.user_list' %}active{% endif %}" href="{{ url_for('admin.user_list') }}">
+                            <i class="fa-solid fa-users-gear"></i> Quản Trị Người Dùng
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'admin.logs' %}active{% endif %}" href="{{ url_for('admin.logs') }}">
+                            <i class="fa-solid fa-shield-halved"></i> Nhật Ký Kiểm Toán
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <li class="nav-item mt-3 border-top border-secondary border-opacity-25 pt-2">
+                        <a class="nav-link text-danger" href="{{ url_for('auth.logout') }}">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i> Đăng Xuất
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="col-md-9 col-lg-10 ms-auto">
+                <!-- Top Navbar -->
+                <nav class="top-navbar d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <a href="{{ url_for('dashboard.index') }}" class="text-decoration-none d-flex align-items-center text-dark">
+                            <span class="fs-5 fw-bold text-primary">VSP SUPPLY CHAIN MANAGEMENT</span>
+                            <span class="sample-badge ms-2">[SAMPLE DATA]</span>
+                        </a>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-3">
+                        <!-- Notifications Dropdown -->
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-light position-relative border" type="button" data-bs-toggle="dropdown">
+                                <i class="fa-solid fa-bell text-secondary"></i>
+                                {% if notifications and notifications|length > 0 %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.65rem;">
+                                    {{ notifications|length }}
+                                </span>
+                                {% endif %}
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow p-2" style="width: 320px; max-height: 400px; overflow-y: auto;">
+                                <li><h6 class="dropdown-header fw-bold px-2">Thông Báo Hệ Thống</h6></li>
+                                {% for n in notifications %}
+                                <li>
+                                    <a class="dropdown-item rounded p-2 small border-bottom mb-1" href="{{ n.link or '#' }}">
+                                        <div class="fw-bold text-primary">{{ n.title }}</div>
+                                        <div class="text-muted" style="font-size: 0.78rem;">{{ n.message }}</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">{{ n.created_at[:16] }}</div>
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="text-center text-muted small py-3">Không có thông báo mới.</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+
+                        <!-- Quick Role Switcher for Testing (Section 19 Acceptance Testing) -->
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-primary dropdown-toggle fw-medium" type="button" data-bs-toggle="dropdown">
+                                <i class="fa-solid fa-users me-1"></i> Đổi Role Test
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow">
+                                <li><h6 class="dropdown-header">Chuyển vai trò thử nghiệm nhanh:</h6></li>
+                                <li>
+                                    <form action="{{ url_for('auth.login') }}" method="POST" class="px-2 py-1">
+                                        <input type="hidden" name="identifier" value="lan_nv">
+                                        <input type="hidden" name="password" value="123456">
+                                        <button type="submit" class="dropdown-item rounded"><i class="fa-solid fa-person-swimming text-success me-2"></i> 1. Nhân viên (Đội lặn)</button>
+                                    </form>
+                                </li>
+                                <li>
+                                    <form action="{{ url_for('auth.login') }}" method="POST" class="px-2 py-1">
+                                        <input type="hidden" name="identifier" value="cungung_nv">
+                                        <input type="hidden" name="password" value="123456">
+                                        <button type="submit" class="dropdown-item rounded"><i class="fa-solid fa-cart-shopping text-primary me-2"></i> 2. Phòng Cung Ứng</button>
+                                    </form>
+                                </li>
+                                <li>
+                                    <form action="{{ url_for('auth.login') }}" method="POST" class="px-2 py-1">
+                                        <input type="hidden" name="identifier" value="kho_nv">
+                                        <input type="hidden" name="password" value="123456">
+                                        <button type="submit" class="dropdown-item rounded"><i class="fa-solid fa-warehouse text-warning me-2"></i> 3. Thủ Kho</button>
+                                    </form>
+                                </li>
+                                <li>
+                                    <form action="{{ url_for('auth.login') }}" method="POST" class="px-2 py-1">
+                                        <input type="hidden" name="identifier" value="lanhdao">
+                                        <input type="hidden" name="password" value="123456">
+                                        <button type="submit" class="dropdown-item rounded"><i class="fa-solid fa-user-tie text-purple me-2"></i> 4. Ban Lãnh Đạo</button>
+                                    </form>
+                                </li>
+                                <li>
+                                    <form action="{{ url_for('auth.login') }}" method="POST" class="px-2 py-1">
+                                        <input type="hidden" name="identifier" value="admin">
+                                        <input type="hidden" name="password" value="admin123">
+                                        <button type="submit" class="dropdown-item rounded"><i class="fa-solid fa-gears text-danger me-2"></i> 5. Admin Hệ Thống</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- Back to Dashboard button on top bar -->
+                        <a href="{{ url_for('dashboard.index') }}" class="btn btn-sm btn-outline-secondary" title="Về Dashboard">
+                            <i class="fa-solid fa-house"></i>
+                        </a>
+
+                        <a href="{{ url_for('auth.logout') }}" class="btn btn-sm btn-outline-danger" title="Đăng Xuất">
+                            <i class="fa-solid fa-power-off"></i>
+                        </a>
+                    </div>
+                </nav>
+
+                <!-- Flash Notifications Block (Section 2) -->
+                <div class="px-4 pt-3">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                                    {% if category == 'success' %}<i class="fa-solid fa-circle-check me-2"></i>
+                                    {% elif category == 'danger' %}<i class="fa-solid fa-triangle-exclamation me-2"></i>
+                                    {% elif category == 'warning' %}<i class="fa-solid fa-circle-exclamation me-2"></i>
+                                    {% else %}<i class="fa-solid fa-circle-info me-2"></i>{% endif %}
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                </div>
+
+                <!-- Page Content -->
+                <div class="p-4">
+                    {% block content %}{% endblock %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Quản Lý Phiếu Nhập Kho (Goods Receipts){% endblock %}
+
+{% block content %}
+<div class="breadcrumb-nav">
+    <a href="{{ url_for('dashboard.index') }}"><i class="fa-solid fa-house me-1"></i>Bảng Điều Khiển</a>
+    <span>/</span>
+    <a href="{{ url_for('warehouse.inventory') }}">Kho Vật Tư</a>
+    <span>/</span>
+    <span class="text-dark">Quản Lý Phiếu Nhập Kho</span>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-dark mb-0">Quản Lý Nhập Kho (Goods Receipt Management)</h3>
+        <p class="text-muted small mb-0">Tạo phiếu nhập kho và tự động cộng dồn số lượng tồn kho thực tế (On-hand quantity)</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-house me-1"></i> Về Dashboard
+        </a>
+        <a href="{{ url_for('warehouse.inventory') }}" class="btn btn-outline-primary btn-sm">
+            <i class="fa-solid fa-boxes-stacked me-1"></i> Tồn Kho
+        </a>
+        <button type="button" class="btn btn-success btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#newReceiptModal">
+            <i class="fa-solid fa-circle-plus me-1"></i> Lập Phiếu Nhập Kho Mới
+        </button>
+    </div>
+</div>
+
+<!-- Goods Receipts Table (Section 8) -->
+<div class="card border-0 shadow-sm bg-white overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small">
+                <tr>
+                    <th>Mã Phiếu Nhập</th>
+                    <th>Ngày Nhập</th>
+                    <th>Mã & Tên Vật Tư</th>
+                    <th class="text-center">Số Lượng Nhập</th>
+                    <th>Nhà Cung Cấp / Nguồn Hàng</th>
+                    <th>Thủ Kho Chịu Trách Nhiệm</th>
+                    <th>Ghi Chú</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in receipts %}
+                <tr>
+                    <td class="fw-bold text-primary">{{ r.receipt_code }}</td>
+                    <td class="small">{{ r.receipt_date }}</td>
+                    <td>
+                        <div class="fw-bold">{{ r.mat_name }}</div>
+                        <div class="text-muted" style="font-size: 0.72rem;">Mã VT: {{ r.mat_code }}</div>
+                    </td>
+                    <td class="text-center fw-bold text-success fs-6">+{{ r.quantity }} {{ r.unit }}</td>
+                    <td>{{ r.supplier_name or 'Nguồn nội bộ VSP' }}</td>
+                    <td class="small">{{ r.warehouse_staff_name or 'Thủ kho' }}</td>
+                    <td class="small text-muted">{{ r.notes or '-' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center py-5 text-muted">
+                        <i class="fa-solid fa-dolly fs-2 mb-2 d-block text-secondary"></i>
+                        Chưa có phiếu nhập kho nào được lập.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal: Lập phiếu nhập kho -->
+<div class="modal fade" id="newReceiptModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('warehouse.goods_receipts') }}" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold text-success"><i class="fa-solid fa-circle-arrow-down me-2"></i>Lập Phiếu Nhập Kho (Goods Receipt)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Chọn vật tư nhập kho *</label>
+                        <select name="material_id" class="form-select" required>
+                            <option value="">-- Chọn mặt hàng từ danh mục kho --</option>
+                            {% for m in materials %}
+                            <option value="{{ m.id }}">[{{ m.code }}] {{ m.name }} (Hiện có: {{ m.current_stock }} {{ m.unit }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Số lượng nhập *</label>
+                            <input type="number" name="quantity" class="form-control" min="1" value="10" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Nhà cung cấp / Đối tác</label>
+                            <select name="supplier_id" class="form-select">
+                                <option value="">-- Chọn nhà cung cấp --</option>
+                                {% for s in suppliers %}
+                                <option value="{{ s.id }}">{{ s.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Nguồn gốc khác (nếu không chọn NCC)</label>
+                        <input type="text" name="supplier_name" class="form-control" placeholder="VD: Thu hồi từ tàu VSP-01, Điều chuyển nội bộ...">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Ghi chú tình trạng hàng hóa</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="Hàng mới 100%, nguyên đai nguyên kiện, chứng chỉ CO/CQ đầy đủ..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-success btn-sm fw-bold">Xác Nhận Nhập Kho</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

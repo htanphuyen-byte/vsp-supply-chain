@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Tạo Yêu Cầu Cấp Vật Tư Mới{% endblock %}
+
+{% block content %}
+<div class="breadcrumb-nav">
+    <a href="{{ url_for('dashboard.index') }}"><i class="fa-solid fa-house me-1"></i>Bảng Điều Khiển</a>
+    <span>/</span>
+    <a href="{{ url_for('employee.requests_list') }}">Yêu Cầu Vật Tư</a>
+    <span>/</span>
+    <span class="text-dark">Tạo Yêu Cầu Mới</span>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card border-0 shadow-sm bg-white p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+                <div>
+                    <h4 class="fw-bold text-primary mb-1">Phiếu Đề Nghị Cung Ứng & Cấp Phát Vật Tư</h4>
+                    <p class="text-muted small mb-0">Bước 1 trong quy trình cung ứng: Tạo và gửi hoặc lưu bản nháp hồ sơ yêu cầu</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fa-solid fa-house me-1"></i> Về Dashboard
+                    </a>
+                    <a href="{{ url_for('employee.requests_list') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fa-solid fa-arrow-left me-1"></i> Danh Sách
+                    </a>
+                </div>
+            </div>
+
+            <!-- Requester Metadata Preview -->
+            <div class="row g-2 mb-3 p-3 bg-light rounded border">
+                <div class="col-md-4">
+                    <span class="small text-muted">Người đề xuất:</span>
+                    <div class="fw-bold text-dark">{{ session.get('full_name') }}</div>
+                </div>
+                <div class="col-md-4">
+                    <span class="small text-muted">Phòng ban / Đội:</span>
+                    <div class="fw-bold text-dark">{{ session.get('department') }}</div>
+                </div>
+                <div class="col-md-4">
+                    <span class="small text-muted">Mã nhân viên / Chức vụ:</span>
+                    <div class="fw-bold text-dark">{{ session.get('employee_id', 'VSP') }} ({{ session.get('position', 'Nhân viên') }})</div>
+                </div>
+            </div>
+
+            <form action="{{ url_for('employee.create_request') }}" method="POST" id="requestForm">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-8">
+                        <label class="form-label fw-bold small">Tiêu đề yêu cầu vật tư *</label>
+                        <input type="text" name="title" class="form-control" placeholder="VD: Cấp que hàn ngầm và ống khí đợt lặn sửa chân đế giàn khoan MSP-1" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small">Mức độ ưu tiên *</label>
+                        <select name="priority" class="form-select">
+                            <option value="normal">Bình thường (Tiêu chuẩn)</option>
+                            <option value="high">Ưu tiên cao</option>
+                            <option value="urgent">Khẩn cấp (Công trình / Cứu hộ ngoài khơi)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-8">
+                        <label class="form-label fw-bold small">Mục đích sử dụng / Lý do yêu cầu *</label>
+                        <textarea name="reason" class="form-control" rows="2" placeholder="Ghi rõ công trình, tàu, giàn khoan hoặc lý do cần trang bị vật tư..." required></textarea>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small">Hạn cần hàng (Required Delivery Date) *</label>
+                        <input type="date" name="required_date" class="form-control" required>
+                    </div>
+                </div>
+
+                <!-- Material Items List -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label fw-bold small mb-0 text-dark">
+                            <i class="fa-solid fa-boxes-stacked me-1 text-primary"></i>Danh sách vật tư đề xuất cấp:
+                        </label>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addRow()">
+                            <i class="fa-solid fa-plus me-1"></i> Thêm mặt hàng
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle" id="itemsTable">
+                            <thead class="table-light small">
+                                <tr>
+                                    <th style="width: 60%;">Tên Vật Tư / Thiết Bị (Danh Mục Kho)</th>
+                                    <th style="width: 25%;">Số Lượng Cần Cấp</th>
+                                    <th style="width: 15%; text-align: center;">Xóa</th>
+                                </tr>
+                            </thead>
+                            <tbody id="itemsBody">
+                                <tr>
+                                    <td>
+                                        <select name="material_id[]" class="form-select select-material" required onchange="updateStockHint(this)">
+                                            <option value="">-- Chọn vật tư từ danh mục kho --</option>
+                                            {% for m in materials %}
+                                            <option value="{{ m.id }}" data-onhand="{{ m.current_stock }}" data-avail="{{ m.available_qty }}" data-unit="{{ m.unit }}">
+                                                [{{ m.code }}] {{ m.name }} (Khả dụng: {{ m.available_qty }} / Tồn: {{ m.current_stock }} {{ m.unit }})
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <div class="input-group">
+                                            <input type="number" name="quantity[]" class="form-control" min="1" value="1" required>
+                                            <span class="input-group-text unit-label">Đơn vị</span>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRow(this)">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Two submission actions (Section 6: Save as Draft vs Submit Request) -->
+                <div class="d-flex justify-content-between align-items-center border-top pt-3">
+                    <a href="{{ url_for('employee.requests_list') }}" class="btn btn-outline-secondary">Hủy bỏ</a>
+                    <div class="d-flex gap-2">
+                        <button type="submit" name="action_type" value="draft" class="btn btn-outline-secondary fw-bold">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Lưu Bản Nháp (Draft)
+                        </button>
+                        <button type="submit" name="action_type" value="submit" class="btn btn-primary px-4 fw-bold shadow-sm">
+                            <i class="fa-solid fa-paper-plane me-1"></i> Gửi Yêu Cầu Cấp Phát
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updateStockHint(selectElem) {
+        const selectedOption = selectElem.options[selectElem.selectedIndex];
+        const unit = selectedOption.getAttribute('data-unit') || 'Đơn vị';
+        const row = selectElem.closest('tr');
+        row.querySelector('.unit-label').innerText = unit;
+    }
+
+    function addRow() {
+        const body = document.getElementById('itemsBody');
+        const firstRow = body.children[0];
+        const newRow = firstRow.cloneNode(true);
+        newRow.querySelector('select').value = "";
+        newRow.querySelector('input[type="number"]').value = 1;
+        newRow.querySelector('.unit-label').innerText = "Đơn vị";
+        body.appendChild(newRow);
+    }
+
+    function removeRow(btn) {
+        const body = document.getElementById('itemsBody');
+        if (body.children.length > 1) {
+            btn.closest('tr').remove();
+        } else {
+            alert("Cần có ít nhất một mặt hàng trong phiếu yêu cầu vật tư!");
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,223 @@
+:root {
+    --vsp-navy: #0A3663;
+    --vsp-navy-dark: #062240;
+    --vsp-navy-light: #16569B;
+    --vsp-gold: #E5A823;
+    --vsp-gray-light: #F4F7FB;
+    --vsp-gray-border: #E2E8F0;
+    --vsp-white: #FFFFFF;
+}
+
+body {
+    background-color: var(--vsp-gray-light);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #2D3748;
+    margin: 0;
+    padding: 0;
+}
+
+/* Sidebar styling */
+.sidebar {
+    background: linear-gradient(180deg, var(--vsp-navy-dark) 0%, var(--vsp-navy) 100%);
+    min-height: 100vh;
+    box-shadow: 2px 0 12px rgba(6, 34, 64, 0.15);
+    color: var(--vsp-white);
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.sidebar .brand {
+    padding: 22px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.sidebar .nav-link {
+    color: rgba(255, 255, 255, 0.82);
+    padding: 11px 16px;
+    font-size: 0.92rem;
+    font-weight: 500;
+    border-radius: 8px;
+    margin: 3px 12px;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.sidebar .nav-link:hover {
+    color: #FFFFFF;
+    background-color: rgba(255, 255, 255, 0.15);
+    transform: translateX(3px);
+}
+
+.sidebar .nav-link.active {
+    background-color: var(--vsp-gold);
+    color: #062240;
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(229, 168, 35, 0.35);
+}
+
+.sidebar .nav-link i {
+    width: 24px;
+    font-size: 1.05rem;
+    margin-right: 10px;
+    text-align: center;
+}
+
+/* Top Navbar */
+.top-navbar {
+    background-color: var(--vsp-white);
+    border-bottom: 1px solid var(--vsp-gray-border);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    padding: 12px 24px;
+}
+
+/* Cards & Stats */
+.card-stat {
+    border-radius: 12px;
+    border: 1px solid var(--vsp-gray-border);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    background: #FFFFFF;
+}
+
+.card-stat:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(10, 54, 99, 0.08);
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+}
+
+/* Stepper for Material Supply Workflow */
+.stepper-wrapper {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 25px;
+    position: relative;
+    overflow-x: auto;
+    padding-bottom: 10px;
+}
+
+.stepper-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    min-width: 85px;
+}
+
+.stepper-item::before {
+    position: absolute;
+    content: "";
+    border-bottom: 2px solid #CBD5E0;
+    width: 100%;
+    top: 18px;
+    left: -50%;
+    z-index: 1;
+}
+
+.stepper-item:first-child::before {
+    content: none;
+}
+
+.stepper-item .step-counter {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #E2E8F0;
+    color: #718096;
+    font-weight: 700;
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+    transition: all 0.3s;
+}
+
+.stepper-item.active .step-counter {
+    background-color: var(--vsp-gold);
+    color: #062240;
+    box-shadow: 0 0 0 4px rgba(229, 168, 35, 0.25);
+}
+
+.stepper-item.completed .step-counter {
+    background-color: #38A169;
+    color: #FFFFFF;
+}
+
+.stepper-item.completed::before {
+    border-bottom-color: #38A169;
+}
+
+.stepper-item .step-name {
+    font-size: 0.72rem;
+    text-align: center;
+    color: #718096;
+    font-weight: 500;
+    line-height: 1.2;
+}
+
+.stepper-item.active .step-name {
+    color: var(--vsp-navy);
+    font-weight: 700;
+}
+
+/* Role Badges */
+.badge-role {
+    padding: 5px 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 20px;
+}
+
+.badge-role-admin { background-color: #E53E3E; color: white; }
+.badge-role-manager { background-color: #6B46C1; color: white; }
+.badge-role-procurement { background-color: #3182CE; color: white; }
+.badge-role-warehouse { background-color: #DD6B20; color: white; }
+.badge-role-employee { background-color: #38A169; color: white; }
+
+/* Breadcrumb & Navigation helper */
+.breadcrumb-nav {
+    display: flex;
+    align-items: center;
+    font-size: 0.85rem;
+    color: #718096;
+    margin-bottom: 16px;
+}
+
+.breadcrumb-nav a {
+    color: var(--vsp-navy-light);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.breadcrumb-nav a:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-nav span {
+    margin: 0 6px;
+}
+
+/* Sample data tag */
+.sample-badge {
+    background-color: #EDF2F7;
+    color: #4A5568;
+    border: 1px dashed #CBD5E0;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+}

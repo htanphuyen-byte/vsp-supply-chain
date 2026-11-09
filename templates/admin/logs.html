@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Nhật Ký Hoạt Động Hệ Thống (Audit Logs){% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-dark mb-0">Nhật Ký Hoạt Động & Kiểm Toán Hệ Thống</h3>
+        <p class="text-muted small mb-0">Lưu vết toàn bộ thao tác thêm, sửa, phê duyệt, xuất nhập kho và giao dịch</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-arrow-left me-1"></i> Quay về Tổng quan
+        </a>
+        <span class="badge bg-secondary p-2 d-flex align-items-center"><i class="fa-solid fa-shield-halved me-1"></i> Ghi nhận bất biến</span>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm bg-white overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 small">
+            <thead class="table-light">
+                <tr>
+                    <th>Thời Điểm</th>
+                    <th>Người Thực Hiện</th>
+                    <th>Hành Động</th>
+                    <th>Đối Tượng</th>
+                    <th>Mã Tham Chiếu</th>
+                    <th>Chi Tiết Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td class="text-muted">{{ log.created_at }}</td>
+                    <td class="fw-bold text-primary">{{ log.user_name }}</td>
+                    <td><span class="badge bg-light text-dark border">{{ log.action }}</span></td>
+                    <td>{{ log.target_type }}</td>
+                    <td class="fw-bold">{{ log.target_id }}</td>
+                    <td>{{ log.details }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">Chưa có nhật ký hoạt động nào.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

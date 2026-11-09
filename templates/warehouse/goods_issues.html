@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Quản Lý Phiếu Xuất Kho (Goods Issues){% endblock %}
+
+{% block content %}
+<div class="breadcrumb-nav">
+    <a href="{{ url_for('dashboard.index') }}"><i class="fa-solid fa-house me-1"></i>Bảng Điều Khiển</a>
+    <span>/</span>
+    <a href="{{ url_for('warehouse.inventory') }}">Kho Vật Tư</a>
+    <span>/</span>
+    <span class="text-dark">Quản Lý Phiếu Xuất Kho</span>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-dark mb-0">Quản Lý Xuất Kho (Goods Issue Management)</h3>
+        <p class="text-muted small mb-0">Lập phiếu xuất kho cấp phát và tự động trừ số lượng tồn kho (Ngăn chặn xuất vượt tồn khả dụng)</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-house me-1"></i> Về Dashboard
+        </a>
+        <a href="{{ url_for('warehouse.inventory') }}" class="btn btn-outline-primary btn-sm">
+            <i class="fa-solid fa-boxes-stacked me-1"></i> Tồn Kho
+        </a>
+        <button type="button" class="btn btn-warning btn-sm text-dark shadow-sm" data-bs-toggle="modal" data-bs-target="#newIssueModal">
+            <i class="fa-solid fa-circle-minus me-1"></i> Lập Phiếu Xuất Kho Trực Tiếp
+        </button>
+    </div>
+</div>
+
+<!-- Goods Issues Table (Section 8) -->
+<div class="card border-0 shadow-sm bg-white overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small">
+                <tr>
+                    <th>Mã Phiếu Xuất</th>
+                    <th>Ngày Xuất</th>
+                    <th>Mã & Tên Vật Tư</th>
+                    <th class="text-center">Số Lượng Xuất</th>
+                    <th>Người Nhận / Bộ Phận</th>
+                    <th>Yêu Cầu Liên Quan</th>
+                    <th>Thủ Kho Xuất Hàng</th>
+                    <th>Ghi Chú</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for gi in issues %}
+                <tr>
+                    <td class="fw-bold text-primary">{{ gi.issue_code }}</td>
+                    <td class="small">{{ gi.issue_date }}</td>
+                    <td>
+                        <div class="fw-bold">{{ gi.mat_name }}</div>
+                        <div class="text-muted" style="font-size: 0.72rem;">Mã VT: {{ gi.mat_code }}</div>
+                    </td>
+                    <td class="text-center fw-bold text-danger fs-6">-{{ gi.quantity }} {{ gi.unit }}</td>
+                    <td>
+                        <div class="fw-bold small">{{ gi.recipient_name }}</div>
+                        <div class="text-muted" style="font-size: 0.72rem;">{{ gi.department }}</div>
+                    </td>
+                    <td>
+                        {% if gi.requisition_code %}
+                            <span class="badge bg-light text-dark border">{{ gi.requisition_code }}</span>
+                        {% else %}
+                            <span class="text-muted small">Xuất sửa chữa trực tiếp</span>
+                        {% endif %}
+                    </td>
+                    <td class="small">{{ gi.warehouse_staff_name or 'Thủ kho' }}</td>
+                    <td class="small text-muted">{{ gi.notes or '-' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="text-center py-5 text-muted">
+                        <i class="fa-solid fa-dolly fs-2 mb-2 d-block text-secondary"></i>
+                        Chưa có phiếu xuất kho nào được ghi nhận.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal: Lập phiếu xuất kho trực tiếp -->
+<div class="modal fade" id="newIssueModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('warehouse.goods_issues') }}" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold text-warning-emphasis"><i class="fa-solid fa-circle-arrow-up me-2"></i>Lập Phiếu Xuất Kho (Goods Issue)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Chọn vật tư xuất kho *</label>
+                        <select name="material_id" class="form-select" required>
+                            <option value="">-- Chọn mặt hàng từ danh mục kho --</option>
+                            {% for m in materials %}
+                            <option value="{{ m.id }}">[{{ m.code }}] {{ m.name }} (Khả dụng: {{ m.available_qty }} / Tồn: {{ m.current_stock }} {{ m.unit }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Số lượng xuất kho *</label>
+                        <input type="number" name="quantity" class="form-control" min="1" value="1" required>
+                        <div class="form-text small text-muted">Hệ thống sẽ kiểm tra và chặn xuất nếu số lượng vượt quá tồn khả dụng.</div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Người nhận hàng *</label>
+                            <input type="text" name="recipient_name" class="form-control" placeholder="Họ tên cán bộ nhận" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Bộ phận / Đội nhận *</label>
+                            <input type="text" name="department" class="form-control" placeholder="Tàu VSP-01, Đội Lặn..." required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Lý do / Công trình sử dụng</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="Xuất phục vụ công tác khẩn cấp..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-warning btn-sm text-dark fw-bold">Xác Nhận Xuất Kho</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

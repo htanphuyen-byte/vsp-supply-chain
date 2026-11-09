@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Lập Đơn Đặt Hàng Mới (Purchase Order){% endblock %}
+
+{% block content %}
+<div class="breadcrumb-nav">
+    <a href="{{ url_for('dashboard.index') }}"><i class="fa-solid fa-house me-1"></i>Bảng Điều Khiển</a>
+    <span>/</span>
+    <a href="{{ url_for('procurement.orders_list') }}">Đơn Mua Hàng (PO)</a>
+    <span>/</span>
+    <span class="text-dark">Lập Đơn PO Mới</span>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card border-0 shadow-sm bg-white p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+                <div>
+                    <h4 class="fw-bold text-primary mb-1">Lập Đơn Đặt Hàng Vật Tư (Purchase Order)</h4>
+                    <p class="text-muted small mb-0">Bước 6 trong quy trình cung ứng: Mua sắm vật tư từ nhà cung cấp đối tác</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fa-solid fa-house me-1"></i> Về Dashboard
+                    </a>
+                    <a href="{{ url_for('procurement.orders_list') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fa-solid fa-arrow-left me-1"></i> Danh Sách PO
+                    </a>
+                </div>
+            </div>
+
+            <form action="{{ url_for('procurement.create_po') }}" method="POST">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small">Chọn Nhà Cung Cấp Đối Tác *</label>
+                        <select name="supplier_id" class="form-select" required>
+                            <option value="">-- Chọn đơn vị cung ứng có trong danh bạ --</option>
+                            {% for s in suppliers %}
+                            <option value="{{ s.id }}">[{{ s.code }}] {{ s.name }} (MST: {{ s.tax_id or 'Chưa có' }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small">Ngày hẹn giao hàng *</label>
+                        <input type="date" name="expected_delivery_date" class="form-control" required>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small">Hồ sơ yêu cầu liên quan</label>
+                        <input type="text" class="form-control bg-light" value="{% if prefill_req %}{{ prefill_req.req_code }} - {{ prefill_req.title[:20] }}...{% else %}Mua bổ sung định kỳ kho{% endif %}" readonly>
+                        <input type="hidden" name="requisition_id" value="{% if prefill_req %}{{ prefill_req.id }}{% endif %}">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">Điều khoản giao nhận & ghi chú hợp đồng</label>
+                    <textarea name="notes" class="form-control" rows="2" placeholder="Giao nhận tại Kho Cảng Dịch vụ Vietsovpetro (Đường 30/4, P. Thắng Nhất, Vũng Tàu). Kèm đầy đủ CO/CQ chứng chỉ vật liệu..."></textarea>
+                </div>
+
+                <!-- PO Items (Section 10) -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label fw-bold small mb-0 text-dark">
+                            <i class="fa-solid fa-receipt me-1 text-primary"></i>Danh mục vật tư đặt mua:
+                        </label>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addPoRow()">
+                            <i class="fa-solid fa-plus me-1"></i> Thêm mặt hàng
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle mb-0" id="poItemsTable">
+                            <thead class="table-light small">
+                                <tr>
+                                    <th style="width: 45%;">Tên Vật Tư / Thiết Bị</th>
+                                    <th style="width: 20%;">Số Lượng Đặt</th>
+                                    <th style="width: 25%;">Đơn Giá Dự Toán (VNĐ)</th>
+                                    <th style="width: 10%; text-align: center;">Xóa</th>
+                                </tr>
+                            </thead>
+                            <tbody id="poItemsBody">
+                                {% if prefill_items %}
+                                    {% for item in prefill_items %}
+                                    <tr>
+                                        <td>
+                                            <select name="material_id[]" class="form-select" required>
+                                                {% for m in materials %}
+                                                <option value="{{ m.id }}" {% if m.id == item.material_id %}selected{% endif %}>
+                                                    [{{ m.code }}] {{ m.name }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input type="number" name="order_qty[]" class="form-control" min="1" value="{{ item.requested_qty }}" required>
+                                        </td>
+                                        <td>
+                                            <input type="number" name="unit_price[]" class="form-control" value="{{ item.unit_price or 1000000 }}" required>
+                                        </td>
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removePoRow(this)">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td>
+                                            <select name="material_id[]" class="form-select" required>
+                                                <option value="">-- Chọn mặt hàng từ danh mục --</option>
+                                                {% for m in materials %}
+                                                <option value="{{ m.id }}">[{{ m.code }}] {{ m.name }} ({{ m.unit }})</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input type="number" name="order_qty[]" class="form-control" min="1" value="10" required>
+                                        </td>
+                                        <td>
+                                            <input type="number" name="unit_price[]" class="form-control" value="2000000" required>
+                                        </td>
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removePoRow(this)">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center border-top pt-3">
+                    <a href="{{ url_for('procurement.orders_list') }}" class="btn btn-outline-secondary">Hủy bỏ</a>
+                    <button type="submit" class="btn btn-primary px-4 fw-bold shadow-sm">
+                        <i class="fa-solid fa-file-signature me-2"></i> Ký Phát Hành Đơn Đặt Hàng (PO)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function addPoRow() {
+        const body = document.getElementById('poItemsBody');
+        const firstRow = body.children[0];
+        const newRow = firstRow.cloneNode(true);
+        newRow.querySelector('input[name="order_qty[]"]').value = 1;
+        body.appendChild(newRow);
+    }
+
+    function removePoRow(btn) {
+        const body = document.getElementById('poItemsBody');
+        if (body.children.length > 1) {
+            btn.closest('tr').remove();
+        } else {
+            alert("Đơn đặt hàng phải có ít nhất một mặt hàng!");
+        }
+    }
+</script>
+{% endblock %}
