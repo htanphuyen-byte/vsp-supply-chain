@@ -111,12 +111,14 @@
                     </li>
                     {% endif %}
 
-                    <!-- Reports & Statistics (All roles) -->
+                    <!-- Reports & Statistics (Manager, Procurement, Warehouse & Admin) -->
+                    {% if session.get('role') in ('manager', 'procurement', 'warehouse', 'admin') %}
                     <li class="nav-item">
                         <a class="nav-link {% if 'reports.' in request.endpoint %}active{% endif %}" href="{{ url_for('reports.index') }}">
                             <i class="fa-solid fa-chart-line"></i> Báo Cáo & Thống Kê
                         </a>
                     </li>
+                    {% endif %}
 
                     <!-- Admin Management (Admin only) -->
                     {% if session.get('role') == 'admin' %}

@@ -1,11 +1,12 @@
 from flask import Blueprint, render_template, request
-from blueprints import login_required
+from blueprints import login_required, role_required
 from database import get_db
 
 reports_bp = Blueprint('reports', __name__, url_prefix='/reports')
 
 @reports_bp.route('/')
 @login_required
+@role_required('manager', 'procurement', 'warehouse', 'admin')
 def index():
     conn = get_db()
 

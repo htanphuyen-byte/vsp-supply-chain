@@ -307,11 +307,21 @@ class TestVSPSupplyChainComplete(unittest.TestCase):
 
     def test_06_admin_logs_and_reports(self):
         print("\n[TEST 6] Kiem tra Dashboard, Bao cao & Admin Audit Logs...")
+        # Kiem tra nhan vien khong co quyen truy cap bao cao & thong ke
+        self.client.post('/auth/login', data={'identifier': 'lan_nv', 'password': '123456'}, follow_redirects=True)
+        res_emp_dash = self.client.get('/')
+        self.assertNotIn("Báo Cáo & Thống Kê", res_emp_dash.text)
+
+        res_emp_rep = self.client.get('/reports/', follow_redirects=True)
+        self.assertIn("Bạn không có quyền truy cập vào chức năng này.", res_emp_rep.text)
+
+        # Dang nhap admin kiem tra quyen truy cap hop le
         self.client.post('/auth/login', data={'identifier': 'admin', 'password': 'admin123'}, follow_redirects=True)
 
         res = self.client.get('/')
         self.assertEqual(res.status_code, 200)
         self.assertIn("Bảng Điều Khiển Tổng Quan", res.text)
+        self.assertIn("Báo Cáo & Thống Kê", res.text)
 
         res_rep = self.client.get('/reports/')
         self.assertEqual(res_rep.status_code, 200)
@@ -321,7 +331,7 @@ class TestVSPSupplyChainComplete(unittest.TestCase):
         self.assertEqual(res_logs.status_code, 200)
         self.assertIn("Nhật Ký Hoạt Động", res_logs.text)
         self.assertIn("Quay về Tổng quan", res_logs.text)
-        print(" -> Dashboard, Bao cao & Audit Logs: DAT")
+        print(" -> Dashboard, Bao cao & Audit Logs (phan quyen Nhan vien / Admin): DAT")
 
 if __name__ == '__main__':
     unittest.main()
